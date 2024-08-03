@@ -126,6 +126,7 @@ impl Choice {
     ///
     /// This function only exists as an **escape hatch** for the rare case
     /// where it's not possible to use one of the `subtle`-provided
+    /// where it's not possible to use one of the `subtle`-provided
     /// trait impls.
     ///
     /// **To convert a `Choice` to a `bool`, use the `From` implementation instead.**
@@ -383,6 +384,11 @@ impl ConstantTimeEq for cmp::Ordering {
     }
 }
 
+/// Marker trait for types whose [`Clone`] impl operates in constant-time.
+pub trait ConstantTimeClone: Clone {}
+
+impl<T: Copy> ConstantTimeClone for T {}
+
 /// A type which can be conditionally selected in constant time.
 ///
 /// This trait also provides generic implementations of conditional
@@ -390,7 +396,7 @@ impl ConstantTimeEq for cmp::Ordering {
 //
 // #[inline] is specified on these function prototypes to signify that they
 #[allow(unused_attributes)] // should be in the actual implementation
-pub trait ConditionallySelectable: Copy {
+pub trait ConditionallySelectable: ConstantTimeClone {
     /// Select `a` or `b` according to `choice`.
     ///
     /// # Returns
@@ -467,7 +473,7 @@ pub trait ConditionallySelectable: Copy {
     /// ```
     #[inline]
     fn conditional_swap(a: &mut Self, b: &mut Self, choice: Choice) {
-        let t: Self = *a;
+        let t: Self = a.clone();
         a.conditional_assign(&b, choice);
         b.conditional_assign(&t, choice);
     }
@@ -575,7 +581,7 @@ impl ConditionallySelectable for Choice {
 #[cfg(feature = "const-generics")]
 impl<T, const N: usize> ConditionallySelectable for [T; N]
 where
-    T: ConditionallySelectable,
+    T: ConditionallySelectable + Copy,
 {
     #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
@@ -741,49 +747,34 @@ impl<T> CtOption<T> {
 
     /// Returns a `None` value if the option is `None`, otherwise
     /// returns a `CtOption` enclosing the value of the provided closure.
-    /// The closure is given the enclosed value or, if the option is
-    /// `None`, it is provided a dummy value computed using
-    /// `Default::default()`.
+    /// The closure is given the enclosed value.
     ///
     /// This operates in constant time, because the provided closure
     /// is always called.
     #[inline]
     pub fn map<U, F>(self, f: F) -> CtOption<U>
     where
-        T: Default + ConditionallySelectable,
+        T: ConditionallySelectable,
         F: FnOnce(T) -> U,
     {
-        CtOption::new(
-            f(T::conditional_select(
-                &T::default(),
-                &self.value,
-                self.is_some,
-            )),
-            self.is_some,
-        )
+        CtOption::new(f(self.value), self.is_some)
     }
 
     /// Returns a `None` value if the option is `None`, otherwise
     /// returns the result of the provided closure. The closure is
-    /// given the enclosed value or, if the option is `None`, it
-    /// is provided a dummy value computed using `Default::default()`.
+    /// given the enclosed value.
     ///
     /// This operates in constant time, because the provided closure
     /// is always called.
     #[inline]
     pub fn and_then<U, F>(self, f: F) -> CtOption<U>
     where
-        T: Default + ConditionallySelectable,
+        T: ConditionallySelectable,
         F: FnOnce(T) -> CtOption<U>,
     {
-        let mut tmp = f(T::conditional_select(
-            &T::default(),
-            &self.value,
-            self.is_some,
-        ));
-        tmp.is_some &= self.is_some;
-
-        tmp
+        let mut ret = f(self.value);
+        ret.is_some &= self.is_some;
+        ret
     }
 
     /// Returns `self` if it contains a value, and otherwise returns the result of
@@ -797,7 +788,10 @@ impl<T> CtOption<T> {
         let is_none = self.is_none();
         let f = f();
 
-        Self::conditional_select(&self, &f, is_none)
+        CtOption::new(
+            T::conditional_select(&self.value, &f.value, is_none),
+            Choice::conditional_select(&self.is_some, &f.is_some, is_none),
+        )
     }
 
     /// Convert the `CtOption<T>` wrapper into an `Option<T>`, depending on whether
@@ -817,7 +811,10 @@ impl<T> CtOption<T> {
     }
 }
 
-impl<T: ConditionallySelectable> ConditionallySelectable for CtOption<T> {
+impl<T> ConditionallySelectable for CtOption<T>
+where
+    T: ConditionallySelectable + Copy
+{
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         CtOption::new(
             T::conditional_select(&a.value, &b.value, choice),
