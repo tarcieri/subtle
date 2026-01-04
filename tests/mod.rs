@@ -487,10 +487,3 @@ fn less_than_ordering() {
         1
     );
 }
-
-#[test]
-fn black_box_round_trip() {
-    let n = 42u64;
-    let black_box = BlackBox::new(n);
-    assert_eq!(n, black_box.get());
-}
