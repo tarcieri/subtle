@@ -9,6 +9,7 @@
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
 #![no_std]
+#![allow(clippy::inline_fn_without_body)]
 #![deny(missing_docs)]
 #![doc(html_logo_url = "https://doc.dalek.rs/assets/dalek-logo-clear.png")]
 
@@ -88,9 +89,9 @@
 //! [rust-timing-shield]: https://www.chosenplaintext.ca/open-source/rust-timing-shield/security
 
 use core::cmp;
+use core::hint::black_box;
 use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
 use core::option::Option;
-use core::hint::black_box;
 
 /// The `Choice` struct represents a choice for use in conditional assignment.
 ///
@@ -436,7 +437,7 @@ pub trait ConditionallySelectable: Copy {
     #[inline]
     fn conditional_swap(a: &mut Self, b: &mut Self, choice: Choice) {
         let t: Self = *a;
-        a.conditional_assign(&b, choice);
+        a.conditional_assign(b, choice);
         b.conditional_assign(&t, choice);
     }
 }
@@ -642,10 +643,7 @@ impl<T> CtOption<T> {
     /// exposed.
     #[inline]
     pub fn new(value: T, is_some: Choice) -> CtOption<T> {
-        CtOption {
-            value: value,
-            is_some: is_some,
-        }
+        CtOption { value, is_some }
     }
 
     /// Returns the contained value, consuming the `self` value.

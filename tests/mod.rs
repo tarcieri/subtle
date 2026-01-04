@@ -10,7 +10,7 @@ fn slices_equal_different_lengths() {
     let a: [u8; 3] = [0, 0, 0];
     let b: [u8; 4] = [0, 0, 0, 0];
 
-    assert_eq!((&a).ct_eq(&b).unwrap_u8(), 1);
+    assert_eq!(a.ct_eq(&b).unwrap_u8(), 1);
 }
 
 #[test]
@@ -18,15 +18,15 @@ fn slices_equal() {
     let a: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
     let b: [u8; 8] = [1, 2, 3, 4, 4, 3, 2, 1];
 
-    let a_eq_a = (&a).ct_eq(&a);
-    let a_eq_b = (&a).ct_eq(&b);
+    let a_eq_a = a.ct_eq(&a);
+    let a_eq_b = a.ct_eq(&b);
 
     assert_eq!(a_eq_a.unwrap_u8(), 1);
     assert_eq!(a_eq_b.unwrap_u8(), 0);
 
     let c: [u8; 16] = [0u8; 16];
 
-    let a_eq_c = (&a).ct_eq(&c);
+    let a_eq_c = a.ct_eq(&c);
     assert_eq!(a_eq_c.unwrap_u8(), 0);
 }
 
@@ -141,18 +141,18 @@ fn conditional_select_choice() {
     let t = Choice::from(1);
     let f = Choice::from(0);
 
-    assert_eq!(bool::from(Choice::conditional_select(&t, &f, f)), true);
-    assert_eq!(bool::from(Choice::conditional_select(&t, &f, t)), false);
-    assert_eq!(bool::from(Choice::conditional_select(&f, &t, f)), false);
-    assert_eq!(bool::from(Choice::conditional_select(&f, &t, t)), true);
+    assert!(bool::from(Choice::conditional_select(&t, &f, f)));
+    assert!(!bool::from(Choice::conditional_select(&t, &f, t)));
+    assert!(!bool::from(Choice::conditional_select(&f, &t, f)));
+    assert!(bool::from(Choice::conditional_select(&f, &t, t)));
 }
 
 #[test]
 fn choice_equal() {
-    assert!(Choice::from(0).ct_eq(&Choice::from(0)).unwrap_u8() == 1);
-    assert!(Choice::from(0).ct_eq(&Choice::from(1)).unwrap_u8() == 0);
-    assert!(Choice::from(1).ct_eq(&Choice::from(0)).unwrap_u8() == 0);
-    assert!(Choice::from(1).ct_eq(&Choice::from(1)).unwrap_u8() == 1);
+    assert_eq!(Choice::from(0).ct_eq(&Choice::from(0)).unwrap_u8(), 1);
+    assert_eq!(Choice::from(0).ct_eq(&Choice::from(1)).unwrap_u8(), 0);
+    assert_eq!(Choice::from(1).ct_eq(&Choice::from(0)).unwrap_u8(), 0);
+    assert_eq!(Choice::from(1).ct_eq(&Choice::from(1)).unwrap_u8(), 1);
 }
 
 #[test]
@@ -284,65 +284,65 @@ fn test_ctoption() {
     ));
 
     // Test (in)equality
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(0))
             .ct_eq(&CtOption::new(1, Choice::from(1)))
-            .unwrap_u8()
-            == 0
+            .unwrap_u8(),
+        0
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(1))
             .ct_eq(&CtOption::new(1, Choice::from(0)))
-            .unwrap_u8()
-            == 0
+            .unwrap_u8(),
+        0
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(0))
             .ct_eq(&CtOption::new(2, Choice::from(1)))
-            .unwrap_u8()
-            == 0
+            .unwrap_u8(),
+        0
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(1))
             .ct_eq(&CtOption::new(2, Choice::from(0)))
-            .unwrap_u8()
-            == 0
+            .unwrap_u8(),
+        0
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(0))
             .ct_eq(&CtOption::new(1, Choice::from(0)))
-            .unwrap_u8()
-            == 1
+            .unwrap_u8(),
+        1
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(0))
             .ct_eq(&CtOption::new(2, Choice::from(0)))
-            .unwrap_u8()
-            == 1
+            .unwrap_u8(),
+        1
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(1))
             .ct_eq(&CtOption::new(2, Choice::from(1)))
-            .unwrap_u8()
-            == 0
+            .unwrap_u8(),
+        0
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(1))
             .ct_eq(&CtOption::new(2, Choice::from(1)))
-            .unwrap_u8()
-            == 0
+            .unwrap_u8(),
+        0
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(1))
             .ct_eq(&CtOption::new(1, Choice::from(1)))
-            .unwrap_u8()
-            == 1
+            .unwrap_u8(),
+        1
     );
-    assert!(
+    assert_eq!(
         CtOption::new(1, Choice::from(1))
             .ct_eq(&CtOption::new(1, Choice::from(1)))
-            .unwrap_u8()
-            == 1
+            .unwrap_u8(),
+        1
     );
 }
 
